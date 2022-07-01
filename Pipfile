@@ -11,6 +11,7 @@ matplotlib = "*"
 seaborn = "*"
 ipython = "*"
 newick = "*"
+biopython = "*"
 
 [dev-packages]
 
