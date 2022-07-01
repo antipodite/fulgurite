@@ -1,6 +1,7 @@
 import collections
 import random
 import math
+import copy
 
 import newick
 import numpy
@@ -11,7 +12,8 @@ import scipy
 TEST_TREE = newick.loads("((((A:1.0,B:1.0):0.5,C:1.5):1.0,(D:0.5,E:0.5)):2.0,F:2.5)")[0]
 TEST_TIPS = {"A": 0, "B": 1, "C": 0, "D": 2, "E": 2, "F": 1}
 
-# The Mk model, which assumes that all state transitions are equally probable
+# The Mk model, which assumes that all state transitions are equally probable. This
+# rate matrix is for a character with 3 possible states
 TEST_Q = numpy.array([
     [-2, 1, 1],
     [1, -2, 1],
@@ -77,31 +79,23 @@ def tree_likelihood(Q, tree, tip_states):
     return sum([prior * l for l in likelihoods[id(tree)]])
 
 
-def unroot(tree):
-    """Convert a rooted tree to an unrooted tree"""
-    pass
+def get_internal_edges(tree):
+    edges = set()
+    for node in tree.walk():
+        if node.ancestor and node.descendants:
+            edge = (node.ancestor, node)
+            edges.add(edge)
+    return edges
 
 
-def nearest_neighbour_interchange(tree):
-    """The simplest algorithm for transforming a tree topology (Felsenstein 2004).
-    An interior branch of a subtree and the two branches connected to that branch at
-    each end are erased, so we're left with 4 subtrees. 4 subtrees can be joined into
-    a tree in 3 possible ways, one of which is the original subtree, so there are two
-    possibilities. 2(n - 3) 
-    """
-    # 1. Pick an internal node at random
-    node = random.choice([n for n in tree.walk() if n.descendants and n.ancestor])
-    # 2. It's got 4 connections: its ancestor, sibling, left child, right child
-    
-
-## Where next?
-# The likelihood function is different for each model of evolution. I reckon stick with
-# simple Mk and try doing metropolis hastings with the parameters being the tree topology
-# and the branch lengths, so look into the algorithms which manipulate the tree to suggest
-# new ones
-# Also thinking about picking up Julia, so could rewrite once I get a bit more written
+def regraft(tree):
+    """Subtree pruning and regrafting"""
+    subtree = random.choice([n for n in tree.walk() if n.ancestor])
+    # Remove the parent node to keep the tree balanced
+    sibling = set(subtree.ancestor.descendants).difference(set([subtree]))
+    return subtree, sibling
 
 def test():
     tl = tree_likelihood(TEST_Q, TEST_TREE, TEST_TIPS)
     print(tl)
-
+    print(regraft(TEST_TREE))
