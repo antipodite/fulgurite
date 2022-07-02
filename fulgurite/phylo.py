@@ -36,7 +36,16 @@ class PhyloNode(anytree.NodeMixin):
     @classmethod
     def from_string(cls, newick_str):
         """Build a PhyloNode tree from a Newick format string"""
-        pass
+        fromnode = lambda n, p: PhyloNode(parent=p, branch_length=n.length, label=n.name)
+        newick_tree = newick.loads(newick_str)[0]
+        phylo_tree = fromnode(newick_tree, None)
+        stack = [(newick_tree, phylo_tree)]
+        while stack:
+            newick_n, phylo_n = stack.pop()
+            for c in newick_n.descendants:
+                stack.append((c, fromnode(c, phylo_n)))
+        assert phylo_tree.is_binary
+        return phylo_tree
 
     def attach(self, subtree):
         """Attach subtree to this node, making necessary changes to maintain
@@ -47,16 +56,16 @@ class PhyloNode(anytree.NodeMixin):
             self.children.append(subtree)
         else:
             self.children = [PhyloNode(children=self.children), subtree]
+        assert len(self.children) == 2
 
     def detach(self, subtree):
         """Detach a node, maintaining binary structure by collapsing remaining
         unary branch."""
         parent = subtree.parent
         subtree.parent = None
-        if len(parent.children) == 1:
-            only = parent.children[0]
-            parent.children = only.children
-        return subtree
+        unary = parent.children[0]
+        parent.children = unary.children
+        assert len(parent.children) == 2
         
     @property
     def is_binary(self):
@@ -64,7 +73,7 @@ class PhyloNode(anytree.NodeMixin):
         return all([len(n.children) == 2 for n in anytree.PreOrderIter(self) if not n.is_leaf])
 
     def __repr__(self):
-        return "PhyloNode({})".format(self.label)
+        return "PhyloNode({}, {})".format(self.label, self.branch_length)
 
 
 def test_node():
@@ -75,13 +84,16 @@ def test_node():
         ]),
         PhyloNode(label="E")
     ])
-    print(anytree.RenderTree(tree))
+    print(anytree.RenderTree(tree), "\n")
     node_f = PhyloNode(label="F")
     tree.attach(node_f)
-    print(anytree.RenderTree(tree))
+    print(anytree.RenderTree(tree), "\n")
     tree.detach(node_f)
-    print(anytree.RenderTree(tree))
+    print(anytree.RenderTree(tree), "\n")
     print(tree.is_binary)
+    print(anytree.RenderTree(
+        PhyloNode.from_string("((((A:1.0,B:1.0):0.5,C:1.5):1.0,(D:0.5,E:0.5)):2.0,F:2.5)")
+    ))
 
 
 def trait_state_probs(t, Q):
