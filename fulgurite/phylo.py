@@ -6,6 +6,7 @@ import copy
 import newick
 import numpy
 import scipy
+import anytree
 
 
 # Tree from Harmon (2022), 8.7 Appendix - Felsenstein's pruning algorithm
@@ -19,6 +20,68 @@ TEST_Q = numpy.array([
     [1, -2, 1],
     [1, 1, -2]
 ])
+
+
+class PhyloNode(anytree.NodeMixin):
+    """Represents a node in a binary-branching phylogenetic tree"""
+    def __init__(self, parent=None, children=None, branch_length=None, label=None):
+        self.parent = parent
+        if children:
+            self.children = children
+        # Branch length between this node and its parent
+        self.branch_length = branch_length
+        self.label = label
+        self.likelihoods = list()
+
+    @classmethod
+    def from_string(cls, newick_str):
+        """Build a PhyloNode tree from a Newick format string"""
+        pass
+
+    def attach(self, subtree):
+        """Attach subtree to this node, making necessary changes to maintain
+        binary branching structure"""
+        if not self.children:
+            self.children = [PhyloNode(), subtree]
+        elif len(self.children) == 1:
+            self.children.append(subtree)
+        else:
+            self.children = [PhyloNode(children=self.children), subtree]
+
+    def detach(self, subtree):
+        """Detach a node, maintaining binary structure by collapsing remaining
+        unary branch."""
+        parent = subtree.parent
+        subtree.parent = None
+        if len(parent.children) == 1:
+            only = parent.children[0]
+            parent.children = only.children
+        return subtree
+        
+    @property
+    def is_binary(self):
+        """Return True if this is a proper binary tree"""
+        return all([len(n.children) == 2 for n in anytree.PreOrderIter(self) if not n.is_leaf])
+
+    def __repr__(self):
+        return "PhyloNode({})".format(self.label)
+
+
+def test_node():
+    tree = PhyloNode(label="A", children=[
+        PhyloNode(label="B", children=[
+            PhyloNode(label="C"),
+            PhyloNode(label="D")
+        ]),
+        PhyloNode(label="E")
+    ])
+    print(anytree.RenderTree(tree))
+    node_f = PhyloNode(label="F")
+    tree.attach(node_f)
+    print(anytree.RenderTree(tree))
+    tree.detach(node_f)
+    print(anytree.RenderTree(tree))
+    print(tree.is_binary)
 
 
 def trait_state_probs(t, Q):
@@ -79,6 +142,10 @@ def tree_likelihood(Q, tree, tip_states):
     return sum([prior * l for l in likelihoods[id(tree)]])
 
 
+def rmnode(tree, node):
+    """Remove a node and rebalance the tree"""
+    
+
 def get_internal_edges(tree):
     edges = set()
     for node in tree.walk():
@@ -94,6 +161,7 @@ def regraft(tree):
     # Remove the parent node to keep the tree balanced
     sibling = set(subtree.ancestor.descendants).difference(set([subtree]))
     return subtree, sibling
+
 
 def test():
     tl = tree_likelihood(TEST_Q, TEST_TREE, TEST_TIPS)
