@@ -22,7 +22,13 @@ TEST_Q = numpy.array([
 ])
 
 
+class PhyloNodeError(Exception):
+    pass
+
+
 class PhyloNode(anytree.NodeMixin):
+    ## Walking the tree every time a node needs to be selected, etc will be inefficient,
+    ## so there should be a hash table of all nodes in the tree or something
     """Represents a node in a binary-branching phylogenetic tree"""
     def __init__(self, parent=None, children=None, branch_length=None, label=None):
         self.parent = parent
@@ -44,56 +50,79 @@ class PhyloNode(anytree.NodeMixin):
             newick_n, phylo_n = stack.pop()
             for c in newick_n.descendants:
                 stack.append((c, fromnode(c, phylo_n)))
-        assert phylo_tree.is_binary
         return phylo_tree
 
     def attach(self, subtree):
         """Attach subtree to this node, making necessary changes to maintain
-        binary branching structure"""
-        if not self.children:
-            self.children = [PhyloNode(), subtree]
-        elif len(self.children) == 1:
-            self.children.append(subtree)
-        else:
-            self.children = [PhyloNode(children=self.children), subtree]
-        assert len(self.children) == 2
+        binary branching structure.
+        """
+        if self.is_leaf:
+            raise PhyloNodeError("Can't attach subtree to tip {}".format(self.label))
+        self.children = [PhyloNode(children=self.children), subtree]
 
     def detach(self, subtree):
         """Detach a node, maintaining binary structure by collapsing remaining
-        unary branch."""
+        unary branch.
+        """
+        if subtree.is_root:
+            raise PhyloNodeError("Can't detach root of tree")
         parent = subtree.parent
         subtree.parent = None
         unary = parent.children[0]
         parent.children = unary.children
-        assert len(parent.children) == 2
-        
+
+    def swap(self, a, b):
+        """Swap the positions of two nodes.
+        Child order won't necessarily be preserved, so the visual representation
+        can differ for trees with identical nodes and topology."""
+        if a.is_root or b.is_root:
+            raise PhyloNodeError("Can't swap position of root node")
+        if a.parent == b.parent:
+            raise PhyloNodeError("Attempt to swap siblings")
+        # Save child order
+        indices = (a.parent.children.index(a), b.parent.children.index(b))
+        oldparent = b.parent
+        b.parent = a.parent
+        a.parent = oldparent
+        # Make sure children in same order. This is much easier than trying to
+        # write a recursive equality function that doesn't depend on child order
+        for node, index in zip((b,a), indices):
+            if node.parent.children.index(node) != index:
+                node.parent.children = node.parent.children[::-1]
+
+    def prune_and_regraft(self):
+        """Generate a new tree with a randomly chosen subtree pruned and reattached
+        at another randomly chosen node. How do you handle branch lengths in this
+        procedure?
+        """
+        pass
+
+    def equal(self, tree):
+        """Return True if this tree and other tree have same nodes and topology.
+        """
+        stack = [(self, tree)] # Need to control traversal myself here as order matters
+        while stack:
+            this, that = stack.pop()
+            if not this == that or not this.children == that.children:
+                return False
+            stack.extend([(ca, cb) for ca, cb in zip(this.children, that.children)])
+        return True
+
     @property
     def is_binary(self):
         """Return True if this is a proper binary tree"""
         return all([len(n.children) == 2 for n in anytree.PreOrderIter(self) if not n.is_leaf])
 
+    @property
+    def is_internal(self):
+        """Return True is this node is neither the root nor a tip"""
+        return not self.is_root and not self.is_leaf
+
+    def __eq__(self, node):
+        return all([self.label == node.label, self.branch_length == node.branch_length])
+
     def __repr__(self):
         return "PhyloNode({}, {})".format(self.label, self.branch_length)
-
-
-def test_node():
-    tree = PhyloNode(label="A", children=[
-        PhyloNode(label="B", children=[
-            PhyloNode(label="C"),
-            PhyloNode(label="D")
-        ]),
-        PhyloNode(label="E")
-    ])
-    print(anytree.RenderTree(tree), "\n")
-    node_f = PhyloNode(label="F")
-    tree.attach(node_f)
-    print(anytree.RenderTree(tree), "\n")
-    tree.detach(node_f)
-    print(anytree.RenderTree(tree), "\n")
-    print(tree.is_binary)
-    print(anytree.RenderTree(
-        PhyloNode.from_string("((((A:1.0,B:1.0):0.5,C:1.5):1.0,(D:0.5,E:0.5)):2.0,F:2.5)")
-    ))
 
 
 def trait_state_probs(t, Q):
@@ -156,7 +185,7 @@ def tree_likelihood(Q, tree, tip_states):
 
 def rmnode(tree, node):
     """Remove a node and rebalance the tree"""
-    
+    pass
 
 def get_internal_edges(tree):
     edges = set()
