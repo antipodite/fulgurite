@@ -20,6 +20,7 @@ class PhyloNode(anytree.NodeMixin):
         self.label = label
         self.likelihoods = list()
 
+
     @classmethod
     def from_string(cls, newick_str):
         """Build a PhyloNode tree from a Newick format string"""
@@ -33,13 +34,16 @@ class PhyloNode(anytree.NodeMixin):
                 stack.append((c, fromnode(c, phylo_n)))
         return phylo_tree
 
-    def attach(self, subtree):
-        """Attach subtree to this node, making necessary changes to maintain
+
+    def attach(self, a, b):
+        """Attach subtree b to node a, making necessary changes to maintain
         binary branching structure.
         """
-        if self.is_leaf:
-            raise PhyloNodeError("Can't attach subtree to tip {}".format(self.label))
-        self.children = [PhyloNode(children=self.children), subtree]
+        # if self.is_leaf:
+        #     raise PhyloNodeError("Can't attach subtree to tip {}".format(self.label))
+        a.children = [PhyloNode(children=a.children), b]
+        return self
+
 
     def detach(self, subtree):
         """Detach a node, maintaining binary structure by collapsing remaining
@@ -47,10 +51,16 @@ class PhyloNode(anytree.NodeMixin):
         """
         if subtree.is_root:
             raise PhyloNodeError("Can't detach root of tree")
+        sibling = subtree.siblings[0]
         parent = subtree.parent
-        subtree.parent = None
-        unary = parent.children[0]
-        parent.children = unary.children
+        grandparent = parent.parent
+        subtree.parent, parent.parent = (None, None)
+        sibling.parent = grandparent
+        if grandparent:
+            new_root = grandparent
+        else: # As a result of the special case of removing a first-order branch
+            new_root = sibling
+        return new_root
 
     def swap(self, a, b):
         """Swap the positions of two nodes."""
@@ -68,37 +78,43 @@ class PhyloNode(anytree.NodeMixin):
         for node, index in zip((b,a), indices):
             if node.parent.children.index(node) != index:
                 node.parent.children = node.parent.children[::-1]
+        return self
+
 
     def prune_and_regraft(self):
-        """Generate a new tree with a randomly chosen subtree pruned and reattached
-        at another randomly chosen node. How do you handle branch lengths in this
-        procedure?
+        """Prune and regraft tree manipulation.
+        Detach a randomly selected subtree and reattach it at at
+        another randomly chosen edge.
         """
-        pass
+        subtree = random.choice([n for n in anytree.PreOrderIter(self) if not n.is_root])
+        detached = self.detach(subtree)
+        rejoin_at = random.choice([n for n in anytree.PreOrderIter(detached)])
+        return detached.attach(rejoin_at, subtree)
+
 
     def equal(self, tree):
-        """Return True if this tree and other tree have same nodes and topology.
+        """Recursive version of __eq__.
+        Return True if this tree and other tree have same nodes and topology.
         """
-        stack = [(self, tree)] # Need to control traversal myself here as order matters
-        while stack:
-            this, that = stack.pop()
-            if not this == that or not this.children == that.children:
+        for a, b in zip(anytree.PreOrderIter(self), anytree.PreOrderIter(tree)):
+            if not a == b:
                 return False
-            stack.extend([(ca, cb) for ca, cb in zip(this.children, that.children)])
         return True
+
 
     @property
     def is_binary(self):
         """Return True if this is a proper binary tree"""
         return all([len(n.children) == 2 for n in anytree.PreOrderIter(self) if not n.is_leaf])
 
-    @property
-    def is_internal(self):
-        """Return True is this node is neither the root nor a tip"""
-        return not self.is_root and not self.is_leaf
 
     def __eq__(self, node):
-        return all([self.label == node.label, self.branch_length == node.branch_length])
+        return all([
+            self.children == node.children,
+            self.label == node.label,
+            self.branch_length == node.branch_length
+        ])
+
 
     def __repr__(self):
         return "PhyloNode({}, {})".format(self.label, self.branch_length)
