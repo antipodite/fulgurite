@@ -9,19 +9,6 @@ import scipy
 import anytree
 
 
-# Tree from Harmon (2022), 8.7 Appendix - Felsenstein's pruning algorithm
-TEST_TREE = newick.loads("((((A:1.0,B:1.0):0.5,C:1.5):1.0,(D:0.5,E:0.5)):2.0,F:2.5)")[0]
-TEST_TIPS = {"A": 0, "B": 1, "C": 0, "D": 2, "E": 2, "F": 1}
-
-# The Mk model, which assumes that all state transitions are equally probable. This
-# rate matrix is for a character with 3 possible states
-TEST_Q = numpy.array([
-    [-2, 1, 1],
-    [1, -2, 1],
-    [1, 1, -2]
-])
-
-
 def trait_state_probs(t, Q):
     """Calculate probability distribution of trait states at time t from rate matrix Q."""
     return scipy.linalg.expm(Q * t)
@@ -78,27 +65,6 @@ def tree_likelihood(Q, tree, tip_states):
     # the prior probability of each state is uniform.
     prior = 1 / n_states
     return sum([prior * l for l in likelihoods[id(tree)]])
-
-
-def rmnode(tree, node):
-    """Remove a node and rebalance the tree"""
-    pass
-
-def get_internal_edges(tree):
-    edges = set()
-    for node in tree.walk():
-        if node.ancestor and node.descendants:
-            edge = (node.ancestor, node)
-            edges.add(edge)
-    return edges
-
-
-def regraft(tree):
-    """Subtree pruning and regrafting"""
-    subtree = random.choice([n for n in tree.walk() if n.ancestor])
-    # Remove the parent node to keep the tree balanced
-    sibling = set(subtree.ancestor.descendants).difference(set([subtree]))
-    return subtree, sibling
 
 
 def test():

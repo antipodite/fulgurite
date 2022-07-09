@@ -11,27 +11,33 @@ class PhyloNode(anytree.NodeMixin):
     ## Walking the tree every time a node needs to be selected, etc will be inefficient,
     ## so there should be a hash table of all nodes in the tree or something
     """Represents a node in a binary-branching phylogenetic tree"""
-    def __init__(self, parent=None, children=None, branch_length=None, label=None):
+    def __init__(self, parent=None, children=None, length=None, label=None, state=None):
         self.parent = parent
         if children:
             self.children = children
         # Branch length between this node and its parent
-        self.branch_length = branch_length
+        self.length = length
         self.label = label
+        self.state = state
         self.likelihoods = list()
 
 
     @classmethod
-    def from_string(cls, newick_str):
+    def from_string(cls, newick_str, states=None):
         """Build a PhyloNode tree from a Newick format string"""
-        fromnode = lambda n, p: PhyloNode(parent=p, branch_length=n.length, label=n.name)
+        fromnode = lambda n, p: PhyloNode(parent=p, length=n.length, label=n.name)
         newick_tree = newick.loads(newick_str)[0]
         phylo_tree = fromnode(newick_tree, None)
         stack = [(newick_tree, phylo_tree)]
         while stack:
             newick_n, phylo_n = stack.pop()
             for c in newick_n.descendants:
-                stack.append((c, fromnode(c, phylo_n)))
+                stack.append( (c, fromnode(c, phylo_n)) )
+        # Attach states
+        if states:
+            for node in anytree.PreOrderIter(phylo_tree):
+                if node.label in states:
+                    node.state = states[node.label]
         return phylo_tree
 
 
@@ -112,10 +118,10 @@ class PhyloNode(anytree.NodeMixin):
         return all([
             self.children == node.children,
             self.label == node.label,
-            self.branch_length == node.branch_length
+            self.length == node.length
         ])
 
 
     def __repr__(self):
-        return "PhyloNode({}, {})".format(self.label, self.branch_length)
+        return "PhyloNode({}, {}, state={})".format(self.label, self.length, self.state)
 

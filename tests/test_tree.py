@@ -2,23 +2,36 @@ import pytest
 import anytree
 import copy
 import logging
+import numpy
 
-from fulgurite.phylonode import PhyloNode, PhyloNodeError
+from fulgurite.tree import PhyloNode, PhyloNodeError
 
 LOGGER = logging.getLogger(__name__)
+# Tree from Harmon (2022), 8.7 Appendix - Felsenstein's pruning algorithm
 NEWICK = "((((A:1.0,B:1.0):0.5,C:1.5):1.0,(D:0.5,E:0.5)):2.0,F:2.5)"
 SWAPPED = "((((D:0.5,E:0.5),C:1.5):1.0,(A:1.0,B:1.0):0.5):2.0,F:2.5)"
 
+# The Mk model, which assumes that all state transitions are equally probable. This
+# rate matrix is for a character with 3 possible states
+TEST_Q = numpy.array([
+    [-2, 1, 1],
+    [1, -2, 1],
+    [1, 1, -2]
+])
+# Tip states for testing likelihood function
+TEST_TIPS = {"A": 0, "B": 1, "C": 0, "D": 2, "E": 2, "F": 1}
+
 
 def test_tree_creation():
-    tree = PhyloNode.from_string(NEWICK)
-    assert tree.is_binary
+    tree = PhyloNode.from_string(NEWICK, states=TEST_TIPS)
+    LOGGER.debug("Tree with tips:\n" + str(anytree.RenderTree(tree)))
+    assert tree.is_binary and all([n.state != None for n in tree.leaves])
 
 
 def test_attach():
     tree = PhyloNode.from_string(NEWICK)
-    node_f = PhyloNode(label="F")
-    tree.attach(tree, node_f)
+    node_g = PhyloNode(label="G")
+    tree.attach(tree, node_g)
     assert tree.is_binary and all([n.label != None for n in tree.leaves])
 
 
@@ -54,10 +67,10 @@ def test_swap():
     swapped = PhyloNode.from_string(SWAPPED)
     a = tree.children[0].children[0].children[0] # 
     b = tree.children[0].children[1]
-    print(a, b)
-    print("Tree:\n", anytree.RenderTree(tree))
+    LOGGER.debug("Tree:\n" + str(anytree.RenderTree(tree)))
     tree.swap(a, b)
-    print("Swapped Tree:\n", anytree.RenderTree(tree))
-    print("Swapped compare:\n", anytree.RenderTree(swapped))
+    LOGGER.debug("Swapped Tree:\n" + str(anytree.RenderTree(tree)))
+    LOGGER.debug("Swapped compare:\n" + str(anytree.RenderTree(swapped)))
     assert tree.equal(swapped)
+
 
