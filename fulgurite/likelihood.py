@@ -5,7 +5,7 @@ import copy
 
 import newick
 import numpy
-import scipy
+import scipy.linalg
 import anytree
 
 
@@ -41,22 +41,22 @@ def tree_likelihood(Q, tree, tip_states):
     """
     # Attach tip likelihoods to leaf nodes. This is easy, the likelihood for state X at
     # some tip is 1 if the tip has that state, otherwise it's 0.
-    tips = tree.get_leaves()
+    tips = {t.label: t for t in tree.leaves}
     n_states = max(tip_states.values()) + 1
     likelihoods = {} # For storing computed likelihoods at each node. Keyed by id(node)
     for label, state_index in tip_states.items():
         tip_likelihoods = [1 if i == state_index else 0 for i in range(n_states)]
-        tip = tree.get_node(label)
+        tip = tips[label]
         likelihoods[id(tip)] = tip_likelihoods
 
     # Traverse tree bottom up in breadth-first order, computing likelihood at each node
-    queue = collections.deque(tips)
+    queue = collections.deque(tips.values())
     while queue:
         node = queue.popleft()
-        if node.ancestor and node.ancestor not in queue:
-            queue.append(node.ancestor)
-        if node.descendants:
-            left, right = node.descendants
+        if node.parent and node.parent not in queue:
+            queue.append(node.parent)
+        if node.children:
+            left, right = node.children
             if id(left) in likelihoods and id(right) in likelihoods:
                 likelihoods[id(node)] = node_likelihood(
                     Q, left.length, right.length, likelihoods[id(left)], likelihoods[id(right)]
@@ -66,8 +66,3 @@ def tree_likelihood(Q, tree, tip_states):
     prior = 1 / n_states
     return sum([prior * l for l in likelihoods[id(tree)]])
 
-
-def test():
-    tl = tree_likelihood(TEST_Q, TEST_TREE, TEST_TIPS)
-    print(tl)
-    print(regraft(TEST_TREE))

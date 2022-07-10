@@ -74,3 +74,7 @@ def test_swap():
     assert tree.equal(swapped)
 
 
+def test_likelihood():
+    tree = PhyloNode.from_string(NEWICK)
+    L = tree.get_likelihood(TEST_Q, TEST_TIPS)
+    assert round(L, 4) == 0.0015

@@ -1,7 +1,7 @@
 import newick
 import anytree
 import random
-
+import fulgurite.likelihood as likelihood
 
 class PhyloNodeError(Exception):
     pass
@@ -26,19 +26,19 @@ class PhyloNode(anytree.NodeMixin):
     def from_string(cls, newick_str, states=None):
         """Build a PhyloNode tree from a Newick format string"""
         fromnode = lambda n, p: PhyloNode(parent=p, length=n.length, label=n.name)
-        newick_tree = newick.loads(newick_str)[0]
-        phylo_tree = fromnode(newick_tree, None)
-        stack = [(newick_tree, phylo_tree)]
+        newick_root = newick.loads(newick_str)[0]
+        phylo_root = fromnode(newick_root, None)
+        stack = [(newick_root, phylo_root)]
         while stack:
             newick_n, phylo_n = stack.pop()
             for c in newick_n.descendants:
                 stack.append( (c, fromnode(c, phylo_n)) )
         # Attach states
         if states:
-            for node in anytree.PreOrderIter(phylo_tree):
+            for node in anytree.PreOrderIter(phylo_root):
                 if node.label in states:
                     node.state = states[node.label]
-        return phylo_tree
+        return phylo_root
 
 
     def attach(self, a, b):
@@ -97,7 +97,28 @@ class PhyloNode(anytree.NodeMixin):
         rejoin_at = random.choice([n for n in anytree.PreOrderIter(detached)])
         return detached.attach(rejoin_at, subtree)
 
-
+    ## TODO: This is why I need a wrapper PhyloTree class (as well as being able to
+    ## refer to root node without the hacky system above..), the wrapper can store
+    ## the total number and names etc of states which are already stored in tree
+    ## TODO: Convert likelihood implementation to use the likelihood slots in the
+    ## tree. This means when the tree changes topology we don't need to recalculate
+    ## the likelihood for the whole tree, further speeding up the calculation
+    ## TODO: Use log likelihoods. This is important according to the big brains as
+    ## often the likelihood values are very small and you can have numerical problems.
+    ## Although according to https://stackoverflow.com/a/48189386 this doesn't matter
+    ## with Python (and implies with doesn't matter with any language running on modern
+    ## hardware which uses IEEE-754):
+    ## >> If the machine you are running on happens not to be using
+    ## >> IEEE-754, it is still likely that computing x/y directly will
+    ## >> produce a better result than np.exp(np.log(x)-np.log(y)). The
+    ## >> former is a single operation computing a basic function in
+    ## >> hardware that was likely reasonably designed. The latter is
+    ## >> several operations computing complicated functions in software
+    ## >> that is difficult to make accurate using common hardware
+    ## >> operations.
+    def get_likelihood(self, Q, tip_states):
+        """Calculate the likelihood of subtree from this node given rate matrix Q."""
+        return likelihood.tree_likelihood(Q, self, tip_states)
     def equal(self, tree):
         """Recursive version of __eq__.
         Return True if this tree and other tree have same nodes and topology.
