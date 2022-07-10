@@ -1,10 +1,60 @@
 import newick
 import anytree
 import random
+import copy
 import fulgurite.likelihood as likelihood
+
 
 class PhyloNodeError(Exception):
     pass
+
+
+class PhyloTree:
+    """Container class for a tree of PhyloNodes.
+    This allows manipulation of the tree without needing to keep track of the root node
+    externally when attaching and detaching nodes. Also allows storing info which is
+    relevant for the whole tree such as a list of nodes so selection can be O(1), the
+    list of states, etc."""
+    def __init__(self, root, states, nodes=None):
+        self.root = root
+        self.states = states
+        if not nodes:
+            self.nodes = [n for n in anytree.PreOrderIter(self.root)]
+        else:
+            self.nodes = nodes
+
+    @classmethod
+    def from_string(cls, newickstr, states):
+        root = PhyloNode.from_string(newickstr, states=states)
+        return PhyloTree(root, states)
+
+    def attach(self, subtree, loc):
+        if loc not in self.nodes:
+            raise PhyloNodeError("Node not in tree!")
+        loc.attach(loc, subtree) # Yuck, fix
+        return self
+
+    def detach(self, subtree):
+        if subtree not in self.nodes:
+            raise PhyloNodeError("Node not in tree!")
+        self.root = self.root.detach(subtree)
+        return self
+
+    def regraft(self, subtree, loc):
+        self.detach(subtree)
+        self.attach(subtree, loc)
+        return self
+
+    @property
+    def leaves(self):
+        return self.root.leaves
+
+    def __str__(self):
+        info = "PhyloTree with {} nodes and {} states\n".format(
+            len(self.nodes), len(set(self.states.values()))
+        )
+        treestruc = str(anytree.RenderTree(self.root))
+        return info + treestruc
 
 
 class PhyloNode(anytree.NodeMixin):
@@ -119,6 +169,8 @@ class PhyloNode(anytree.NodeMixin):
     def get_likelihood(self, Q, tip_states):
         """Calculate the likelihood of subtree from this node given rate matrix Q."""
         return likelihood.tree_likelihood(Q, self, tip_states)
+
+
     def equal(self, tree):
         """Recursive version of __eq__.
         Return True if this tree and other tree have same nodes and topology.

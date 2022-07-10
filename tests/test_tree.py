@@ -3,8 +3,9 @@ import anytree
 import copy
 import logging
 import numpy
+import random
 
-from fulgurite.tree import PhyloNode, PhyloNodeError
+from fulgurite.tree import PhyloNode, PhyloNodeError, PhyloTree
 
 LOGGER = logging.getLogger(__name__)
 # Tree from Harmon (2022), 8.7 Appendix - Felsenstein's pruning algorithm
@@ -78,3 +79,19 @@ def test_likelihood():
     tree = PhyloNode.from_string(NEWICK)
     L = tree.get_likelihood(TEST_Q, TEST_TIPS)
     assert round(L, 4) == 0.0015
+
+
+def test_phylotree_creation():
+    """Test wrapper class"""
+    tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
+    assert tree.root == PhyloNode.from_string(NEWICK)
+    LOGGER.debug(str(tree))
+
+
+# def test_phylotree_struc():
+#     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
+#     for n in range(5):
+#         copied = copy.deepcopy(tree)
+#         st, loc = random.sample([n for n in copied.nodes if not n.is_root], 2)
+#         copied.regraft(st, loc)
+#         LOGGER.debug(str(copied))
