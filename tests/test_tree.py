@@ -26,23 +26,27 @@ TEST_TIPS = {"A": 0, "B": 1, "C": 0, "D": 2, "E": 2, "F": 1}
 def test_tree_creation():
     tree = PhyloNode.from_string(NEWICK, states=TEST_TIPS)
     LOGGER.debug("Tree with tips:\n" + str(anytree.RenderTree(tree)))
-    assert tree.is_binary and all([n.state != None for n in tree.leaves])
+    assert tree.is_binary
+    assert all([n.state != None and n.likelihoods for n in tree.leaves])
 
 
 def test_attach():
     tree = PhyloNode.from_string(NEWICK)
     node_g = PhyloNode(label="G")
-    tree.attach(tree, node_g)
+    tree.attach(node_g)
     assert tree.is_binary and all([n.label != None for n in tree.leaves])
 
 
 def test_detach():
     tree = PhyloNode.from_string(NEWICK)
+    node = random.choice([n for n in anytree.PreOrderIter(tree) if not n.is_root])
+    node.detach()
+    assert tree.is_binary
+    tree = PhyloNode.from_string(NEWICK)
     for node in anytree.PreOrderIter(tree):
         if not node.is_root:
-            fresh = copy.deepcopy(tree)
-            detached = fresh.detach(node)
-            assert detached.is_binary and all([n.label != None for n in detached.leaves])
+            node.detach()
+            assert tree.is_binary
 
 
 def test_from_string():
@@ -54,25 +58,6 @@ def test_eq():
     tree1 = PhyloNode.from_string(NEWICK)
     tree2 = PhyloNode.from_string(NEWICK)
     assert tree1.equal(tree2) and tree1 == tree2
-
-
-def test_prune_regraft():
-    tree = PhyloNode.from_string(NEWICK)
-    LOGGER.debug("Tree:\n" + str(anytree.RenderTree(tree)))
-    tree.prune_and_regraft()
-    LOGGER.debug("Regrafted:\n" + str(anytree.RenderTree(tree)))
-
-
-def test_swap():
-    tree = PhyloNode.from_string(NEWICK)
-    swapped = PhyloNode.from_string(SWAPPED)
-    a = tree.children[0].children[0].children[0] # 
-    b = tree.children[0].children[1]
-    LOGGER.debug("Tree:\n" + str(anytree.RenderTree(tree)))
-    tree.swap(a, b)
-    LOGGER.debug("Swapped Tree:\n" + str(anytree.RenderTree(tree)))
-    LOGGER.debug("Swapped compare:\n" + str(anytree.RenderTree(swapped)))
-    assert tree.equal(swapped)
 
 
 def test_likelihood():

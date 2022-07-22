@@ -31,13 +31,13 @@ class PhyloTree:
     def attach(self, subtree, loc):
         if loc not in self.nodes:
             raise PhyloNodeError("Node not in tree!")
-        loc.attach(loc, subtree) # Yuck, fix
+        loc.attach(subtree) # Yuck, fix
         return self
 
     def detach(self, subtree):
         if subtree not in self.nodes:
             raise PhyloNodeError("Node not in tree!")
-        self.root = self.root.detach(subtree)
+        self.root = subtree.detach()
         return self
 
     def regraft(self, subtree, loc):
@@ -74,7 +74,10 @@ class PhyloNode(anytree.NodeMixin):
 
     @classmethod
     def from_string(cls, newick_str, states=None):
-        """Build a PhyloNode tree from a Newick format string"""
+        """Build a PhyloNode tree from a Newick format string
+        newick_str: a tree defined as a Newick formatted string
+        states: a dict of {label: state} where state is an integer from 0 -> n states - 1
+        """
         fromnode = lambda n, p: PhyloNode(parent=p, length=n.length, label=n.name)
         newick_root = newick.loads(newick_str)[0]
         phylo_root = fromnode(newick_root, None)
@@ -85,67 +88,44 @@ class PhyloNode(anytree.NodeMixin):
                 stack.append( (c, fromnode(c, phylo_n)) )
         # Attach states
         if states:
+            n_states = max(states.values()) + 1
             for node in anytree.PreOrderIter(phylo_root):
                 if node.label in states:
-                    node.state = states[node.label]
+                    this_state = states[node.label]
+                    node.state = this_state
+                    # Preset likelihoods: likelihood for this state at this node is 1,
+                    # the rest are 0
+                    likelihoods = [0 for i in range(n_states)]
+                    likelihoods[this_state] = 1
+                    node.likelihoods = likelihoods
         return phylo_root
 
 
-    def attach(self, a, b):
+    def attach(self, subtree):
         """Attach subtree b to node a, making necessary changes to maintain
         binary branching structure.
         """
         # if self.is_leaf:
         #     raise PhyloNodeError("Can't attach subtree to tip {}".format(self.label))
-        a.children = [PhyloNode(children=a.children), b]
+        self.children = [PhyloNode(children=self.children), subtree]
         return self
 
-
-    def detach(self, subtree):
-        """Detach a node, maintaining binary structure by collapsing remaining
-        unary branch.
+    def detach(self):
+        """Detach this node.
+        We maintain binary structure by collapsing the remaining unary branch.
         """
-        if subtree.is_root:
-            raise PhyloNodeError("Can't detach root of tree")
-        sibling = subtree.siblings[0]
-        parent = subtree.parent
+        if self.is_root:
+            raise PhyloNodeError("Can't detach root node")
+        sibling = self.siblings[0]
+        parent = self.parent
         grandparent = parent.parent
-        subtree.parent, parent.parent = (None, None)
+        self.parent, parent.parent = (None, None)
         sibling.parent = grandparent
         if grandparent:
             new_root = grandparent
         else: # As a result of the special case of removing a first-order branch
             new_root = sibling
         return new_root
-
-    def swap(self, a, b):
-        """Swap the positions of two nodes."""
-        if a.is_root or b.is_root:
-            raise PhyloNodeError("Can't swap position of root node")
-        if a.parent == b.parent:
-            raise PhyloNodeError("Attempt to swap siblings")
-        # Save child order
-        indices = (a.parent.children.index(a), b.parent.children.index(b))
-        oldparent = b.parent
-        b.parent = a.parent
-        a.parent = oldparent
-        # Make sure children in same order. This is much easier than trying to
-        # write a recursive equality function that doesn't depend on child order
-        for node, index in zip((b,a), indices):
-            if node.parent.children.index(node) != index:
-                node.parent.children = node.parent.children[::-1]
-        return self
-
-
-    def prune_and_regraft(self):
-        """Prune and regraft tree manipulation.
-        Detach a randomly selected subtree and reattach it at at
-        another randomly chosen edge.
-        """
-        subtree = random.choice([n for n in anytree.PreOrderIter(self) if not n.is_root])
-        detached = self.detach(subtree)
-        rejoin_at = random.choice([n for n in anytree.PreOrderIter(detached)])
-        return detached.attach(rejoin_at, subtree)
 
     ## TODO: This is why I need a wrapper PhyloTree class (as well as being able to
     ## refer to root node without the hacky system above..), the wrapper can store
@@ -169,23 +149,20 @@ class PhyloNode(anytree.NodeMixin):
     def get_likelihood(self, Q, tip_states):
         """Calculate the likelihood of subtree from this node given rate matrix Q."""
         return likelihood.tree_likelihood(Q, self, tip_states)
-
-
-    def equal(self, tree):
+    
+    def equal(self, subtree):
         """Recursive version of __eq__.
         Return True if this tree and other tree have same nodes and topology.
         """
-        for a, b in zip(anytree.PreOrderIter(self), anytree.PreOrderIter(tree)):
+        for a, b in zip(anytree.PreOrderIter(self), anytree.PreOrderIter(subtree)):
             if not a == b:
                 return False
         return True
 
-
     @property
     def is_binary(self):
-        """Return True if this is a proper binary tree"""
+        """Return True if this is a proper binary subtree"""
         return all([len(n.children) == 2 for n in anytree.PreOrderIter(self) if not n.is_leaf])
-
 
     def __eq__(self, node):
         return all([
@@ -194,7 +171,7 @@ class PhyloNode(anytree.NodeMixin):
             self.length == node.length
         ])
 
-
     def __repr__(self):
-        return "PhyloNode({}, {}, state={})".format(self.label, self.length, self.state)
+        template = "PhyloNode({}, {}, state={}, likelihoods={})"
+        return template.format(self.label, self.length, self.state, self.likelihoods)
 
