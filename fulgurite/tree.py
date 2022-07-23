@@ -1,8 +1,6 @@
 import newick
 import anytree
-import random
-import copy
-import fulgurite.likelihood as likelihood
+import fulgurite.mkmodel as mkmodel
 
 
 class PhyloNodeError(Exception):
@@ -77,6 +75,7 @@ class PhyloNode(anytree.NodeMixin):
         """Build a PhyloNode tree from a Newick format string
         newick_str: a tree defined as a Newick formatted string
         states: a dict of {label: state} where state is an integer from 0 -> n states - 1
+        TODO: Move this code into the PhyloTree wrapper class
         """
         fromnode = lambda n, p: PhyloNode(parent=p, length=n.length, label=n.name)
         newick_root = newick.loads(newick_str)[0]
@@ -98,6 +97,8 @@ class PhyloNode(anytree.NodeMixin):
                     likelihoods = [0 for i in range(n_states)]
                     likelihoods[this_state] = 1
                     node.likelihoods = likelihoods
+                else:
+                    node.likelihoods = [None for i in range(n_states)]
         return phylo_root
 
 
@@ -146,9 +147,9 @@ class PhyloNode(anytree.NodeMixin):
     ## >> several operations computing complicated functions in software
     ## >> that is difficult to make accurate using common hardware
     ## >> operations.
-    def get_likelihood(self, Q, tip_states):
+    def get_likelihood(self, Q):
         """Calculate the likelihood of subtree from this node given rate matrix Q."""
-        return likelihood.tree_likelihood(Q, self, tip_states)
+        return mkmodel.subtree_likelihood(self, Q)
     
     def equal(self, subtree):
         """Recursive version of __eq__.

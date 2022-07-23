@@ -1,6 +1,4 @@
-import pytest
 import anytree
-import copy
 import logging
 import numpy
 import random
@@ -61,9 +59,11 @@ def test_eq():
 
 
 def test_likelihood():
-    tree = PhyloNode.from_string(NEWICK)
-    L = tree.get_likelihood(TEST_Q, TEST_TIPS)
+    tree = PhyloNode.from_string(NEWICK, TEST_TIPS)
+    L = tree.get_likelihood(1)
     assert round(L, 4) == 0.0015
+    # So can have a look at the tree with computed likelihoods
+    LOGGER.debug(anytree.RenderTree(tree))
 
 
 def test_phylotree_creation():
@@ -73,10 +73,3 @@ def test_phylotree_creation():
     LOGGER.debug(str(tree))
 
 
-# def test_phylotree_struc():
-#     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
-#     for n in range(5):
-#         copied = copy.deepcopy(tree)
-#         st, loc = random.sample([n for n in copied.nodes if not n.is_root], 2)
-#         copied.regraft(st, loc)
-#         LOGGER.debug(str(copied))
