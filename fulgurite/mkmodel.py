@@ -6,7 +6,7 @@ any Q matrix, the sum of all the elements in a row should be 0 as this
 is a necessary condition for a transition rate matrix.
 """
 import numpy
-import scipy.linalg
+import scipy
 from anytree.iterators.levelorderiter import LevelOrderIter
 
 

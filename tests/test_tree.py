@@ -48,7 +48,8 @@ def test_squamate_tree():
     LOGGER.debug(str(tree))
     assert len([x for x in tree.leaves if x.state == 1]) == 51
     assert tree.root.is_binary
-    
+
+
 def test_tree_creation():
     tree = PhyloNode.from_string(NEWICK, states=TEST_TIPS)
     LOGGER.debug("Tree with tips:\n" + str(anytree.RenderTree(tree)))
@@ -103,4 +104,7 @@ def test_phylotree_creation():
 
 def test_mcmc():
     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
-    
+    qposterior = sample(tree, 1000)
+    LOGGER.debug(qposterior)
+    pmean = sum(qposterior) / len(qposterior)
+    assert round(pmean) == 1
