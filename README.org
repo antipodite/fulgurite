@@ -1,0 +1,41 @@
+* Fulgurite
+
+Toy implementation of Bayesian phylogenetic analysis algorithms for learning purposes and experimentation with the method.
+
+** Implemented so far:
+- Loading a phylogenetic tree in Newick format
+- The Mk constant-rates model
+- Felsenstein's pruning algorithm for efficiently computing likelihoods
+- Estimation of Mk model Q parameter using Metropolis algorithm:
+
+INFO    P = 0.9255830319969596, L = 0.0015366202831402559
+┌────────────────────────────────────────────────────────────────────────────────┐
+││  ▟▌▖ ▐▄▗▙    ▟▖█▗█  ▙▗▐▜▖  ▐▌  ▖▐▙▙█ ▐▜ ▗▖ ▗▙   ▐▄  ▖▐▜▌▙     ▗▖▙█ ▌█ ▄▖ ▐▐▗ █│ 1
+│▐▌▐▜█▌▖▟▐▟█▗ ▟██▙███▗ █▟▟▐▌  ▐█▄▟█████▗▟▐ ▐█▐██ █▌▐█ ▟█▐▐██▟▌▐▖ ████▄▙█ ▌▌▟▐█▐██│ 
+│▐▙▐▐██▌█▐▛██████████▐▟███ ▌ ▙▐█▌████████▐▐▐█▟▛█ ████▙███▐███▌█▙ ███▌██▛█▌▌█▟████│ 
+│▐█▟▝████▐▌▌██████▛██▟████ ▌ ███▌████████▐█▐██▌██████████▐██▜▌██▄███▌█▜▌█▌▌██████│ 
+│██▐ █▛██▐▌ ███▌▜▐▌█▌█▐█▌█ ▙▛██▐▌▜▛█████▛▐████▌██▛██████▛ ▐█▐███▐█▛█▌▜▐▌█▌▌▛███▜█│ 0.9
+│██▐ █▌█▌▐▌ █▜▛▌▐▐▌█ █▐█▌█ █▘██▐▌▐▌███▜█▌▐████▌ ▐▌██▛███▌ ▐█▐█▜█▐▌ █▌▝▐▌█▌▌▌█▜█▐█│ 
+│██▐ ▛▌▐▌▐▌ █▐▌▌▐▐ ▌ ▜▐█▌▜ █ ▐█▐▌▐▌▐██▐█▌▝██▌█  ▐▌█▛▘▐▌▐▌ ▐  █▝█▐▌ ▐  ▐ █▌▙▌█▐█▐█│ 
+│▜▌▐ ▌▌▐▌▐▌  ▐ ▌▐▐ ▌ ▐▝ ▌  █ ▐▌▐▘▐▌▐▐▛▐█▌ ▛ ▌█  ▐▌▘  ▐▌▐▌ ▐    █▐▌ ▐  ▝ █▌▜▌▛▝▜ ▐│ 
+│▐▌▐ ▌▘▐▌▐▌  ▐ ▌ ▐ ▘ ▐  ▘  █  ▌▐ ▐▘▐▝▌▐▌▌ ▌ ▌█  ▝▌   ▐▌▐▌ ▝    ▐▐▘      ▌▘▐▌    ▐│ 
+│▝▌  ▌ ▐▌    ▐   ▝   ▐     █  ▌▐ ▐ ▐  ▐▘▌ ▌ ▌█   ▌             ▐          ▐▌    ▐│ 0.8
+││▌  ▌  ▌    ▝       ▐     █  ▌▐ ▐ ▐  ▐   ▌  ▐   ▌             ▐          ▐▌    ▐│ 
+││   ▘  ▌                  █  ▌  ▐    ▐   ▌  ▐   ▌             ▐          ▐▌    ▝│ 
+││      ▌                  ▘     ▐    ▐   ▌      ▌             ▐          ▐      │ 
+││      ▌                        ▐    ▐          ▌             ▐          ▐      │ 0.7
+││                                    ▐          ▌                        ▐      │ 
+││                                    ▐                                   ▐      │ 
+││                                                                        ▐      │ 
+└────────────────────────────────────────────────────────────────────────────────┘
+ 0                 1,000               2,000              3,000               4,000
+
+** Planned:
+- More models, such as Yule and Birth/Death
+- Simultaneous estimation of topology, branch lengths and multiple model parameters
+- Generation of animated visualisations for educational purposes
+- Features specific to phylolinguistics?
+- More speed, most probably via a rewrite in Nim or good old CL. Matrix exponentiation with Scipy is really slow for some reason
+
+** Misc
+Contains test data from [Phylogenetic Comparative Methods](https://lukejharmon.github.io/pcm/chapters/) by Luke J. Harmon. This is a great book and is helping me a lot
