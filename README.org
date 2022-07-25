@@ -7,6 +7,7 @@ Toy implementation of Bayesian phylogenetic analysis algorithms for learning pur
 - The Mk constant-rates model
 - Felsenstein's pruning algorithm for efficiently computing likelihoods
 - Estimation of Mk model Q parameter using Metropolis algorithm:
+#+begin_src 
 
 INFO    P = 0.9255830319969596, L = 0.0015366202831402559
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -29,6 +30,7 @@ INFO    P = 0.9255830319969596, L = 0.0015366202831402559
 ││                                                                        ▐      │ 
 └────────────────────────────────────────────────────────────────────────────────┘
  0                 1,000               2,000              3,000               4,000
+#+end_src
 
 ** Planned:
 - More models, such as Yule and Birth/Death
