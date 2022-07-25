@@ -44,8 +44,7 @@ def subtree_likelihood(node, Q):
     # TODO Implement reverse level order traversal properly, as it's currently
     # at least O(n²) depending on how efficient reversed() is
     matrix = make_transition_matrix(Q, len(node.likelihoods))
-    for n in reversed([n for n in LevelOrderIter(node)]):
+    for n in node.reverse_level_walk():
         n.likelihoods = combine_likelihoods(n, matrix)
     prior = 1 / len(node.likelihoods) # Uniform prior
     return sum([prior * l for l in node.likelihoods])
-    

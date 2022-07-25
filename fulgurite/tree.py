@@ -1,6 +1,20 @@
 import newick
 import anytree
+import random
+import collections
 import fulgurite.mkmodel as mkmodel
+
+
+def reverselevelorder(node):
+    """Walk the tree in reverse level order, in O(n) time"""
+    leaves = sorted(node.leaves, key=lambda n: n.height)
+    queue = collections.deque([node.root])
+    result = collections.deque()
+    while queue:
+        this = queue.popleft()
+        result.appendleft(this)
+        queue.extend(this.children)
+    return result
 
 
 class PhyloNodeError(Exception):
@@ -13,7 +27,7 @@ class PhyloTree:
     externally when attaching and detaching nodes. Also allows storing info which is
     relevant for the whole tree such as a list of nodes so selection can be O(1), the
     list of states, etc."""
-    def __init__(self, root, states, nodes=None):
+    def __init__(self, root, states=dict(), nodes=None):
         self.root = root
         self.states = states
         if not nodes:
@@ -71,7 +85,7 @@ class PhyloNode(anytree.NodeMixin):
 
 
     @classmethod
-    def from_string(cls, newick_str, states=None):
+    def from_string(cls, newick_str, states=dict()):
         """Build a PhyloNode tree from a Newick format string
         newick_str: a tree defined as a Newick formatted string
         states: a dict of {label: state} where state is an integer from 0 -> n states - 1
@@ -159,6 +173,10 @@ class PhyloNode(anytree.NodeMixin):
             if not a == b:
                 return False
         return True
+
+    def reverse_level_walk(self):
+        for n in reverselevelorder(self):
+            yield n
 
     @property
     def is_binary(self):

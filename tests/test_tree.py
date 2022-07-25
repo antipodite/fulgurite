@@ -6,8 +6,8 @@ import csv
 import uniplot
 
 from distutils import dir_util
-from fulgurite.tree import PhyloNode, PhyloTree
-from fulgurite.mcmc import sample
+from fulgurite.tree import PhyloNode, PhyloTree, reverselevelorder
+from fulgurite.mcmc import sample, sample_topology
 
 
 LOGGER = logging.getLogger(__name__)
@@ -120,3 +120,8 @@ def test_mcmc():
     assert round(pmean) == 1
     assert round(lmean, 4) == 0.0015
     
+
+# def test_topology_sampler():
+#     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
+#     trees, l = sample_topology(tree, 10)
+#     LOGGER.info("\n".join(trees))
