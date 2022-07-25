@@ -1,9 +1,8 @@
 """
-Markov Chain Monte Carlo sampling control logic
-© Isaac Stead, July 2022
+Markov Chain Monte Carlo sampling control logic.
 """
 import scipy.stats as stats
-from fulgurite.tree import PhyloNode, PhyloTree
+from fulgurite.tree import PhyloTree
 
 
 def sample(tree: PhyloTree, samples, weight=0.2):
@@ -13,6 +12,7 @@ def sample(tree: PhyloTree, samples, weight=0.2):
     posterior that we're trying to estimate. It's kind of like magic tbh.
     """
     posterior = []
+    likelihood = []
     qcurrent = stats.uniform(0, 1).rvs()
     for i in range(samples):
         # Select proposed value of q based on proposal weight density
@@ -36,5 +36,6 @@ def sample(tree: PhyloTree, samples, weight=0.2):
 
         # Add this sample to the set of posterior samples
         posterior.append(qcurrent)
+        likelihood.append(lcurrent)
 
-    return posterior
+    return posterior, likelihood

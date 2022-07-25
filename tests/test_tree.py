@@ -3,6 +3,7 @@ import logging
 import random
 import pathlib
 import csv
+import uniplot
 
 from distutils import dir_util
 from fulgurite.tree import PhyloNode, PhyloTree
@@ -45,14 +46,14 @@ def load_squamate_data():
 def test_squamate_tree():
     """Confirm squamate data for "is limbless" character loaded correctly"""
     tree = load_squamate_data()
-    LOGGER.debug(str(tree))
+    LOGGER.info(str(tree))
     assert len([x for x in tree.leaves if x.state == 1]) == 51
     assert tree.root.is_binary
 
 
 def test_tree_creation():
     tree = PhyloNode.from_string(NEWICK, states=TEST_TIPS)
-    LOGGER.debug("Tree with tips:\n" + str(anytree.RenderTree(tree)))
+    LOGGER.info("Tree with tips:\n" + str(anytree.RenderTree(tree)))
     assert tree.is_binary
     assert all([n.state != None and n.likelihoods for n in tree.leaves])
     
@@ -92,19 +93,30 @@ def test_likelihood():
     L = tree.get_likelihood(1)
     assert round(L, 4) == 0.0015
     # So can have a look at the tree with computed likelihoods
-    LOGGER.debug(anytree.RenderTree(tree))
+    LOGGER.info(anytree.RenderTree(tree))
 
 
 def test_phylotree_creation():
     """Test wrapper class"""
     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
     assert tree.root == PhyloNode.from_string(NEWICK)
-    LOGGER.debug(str(tree))
+    LOGGER.info(str(tree))
 
 
 def test_mcmc():
     tree = PhyloTree.from_string(NEWICK, TEST_TIPS)
-    qposterior = sample(tree, 1000)
-    LOGGER.debug(qposterior)
+    qposterior, qlikelihood = sample(tree, 4000)
     pmean = sum(qposterior) / len(qposterior)
+    lmean = sum(qlikelihood) / len(qlikelihood)
+    LOGGER.info("P = {}, L = {}".format(pmean, lmean))
+    # Show a plot of the posterior trace in log output
+    plot = uniplot.plot(
+        ys = qposterior,
+        xs = [x for x in range(len(qposterior))],
+        lines = True,
+        width = 80,
+    )
+    LOGGER.info(plot)
     assert round(pmean) == 1
+    assert round(lmean, 4) == 0.0015
+    

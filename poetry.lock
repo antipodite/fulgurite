@@ -469,6 +469,20 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "uniplot"
+version = "0.5.0"
+description = "Lightweight plotting to the terminal. 4x resolution via Unicode."
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[package.dependencies]
+numpy = ">=1.15.0"
+
+[package.extras]
+dev = ["pytest (>=6.0.1)", "mypy", "black"]
+
+[[package]]
 name = "wcwidth"
 version = "0.2.5"
 description = "Measures the displayed width of unicode strings in a terminal"
@@ -479,7 +493,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "bdf76096945a21cb13916258bd3c8149f4cde3f7d0f4f246e8364dcb2aa5c030"
+content-hash = "0fb5d3912e3d7b2762a1449bb36be9424edb23f2857e6a6c34de827adc1705eb"
 
 [metadata.files]
 anytree = [
@@ -662,6 +676,7 @@ traitlets = [
     {file = "traitlets-5.3.0.tar.gz", hash = "sha256:0bb9f1f9f017aa8ec187d8b1b2a7a6626a2a1d877116baba52a129bfa124f8e2"},
 ]
 typing-extensions = []
+uniplot = []
 wcwidth = [
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
     {file = "wcwidth-0.2.5.tar.gz", hash = "sha256:c4d647b99872929fdb7bdcaa4fbe7f01413ed3d98077df798530e5b04f116c83"},
